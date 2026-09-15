@@ -3,26 +3,31 @@
     <div
       class="flex items-center justify-between gap-space-sm p-space-sm rounded-xl bg-surface-container/60 hover:bg-surface-container transition-all"
     >
-      <div class="flex flex-col min-w-0">
-        <span class="font-sans text-body-md font-semibold text-on-surface truncate">
-          {{ expense.description || '(sin descripción)' }}
-        </span>
-        <div class="flex items-center gap-space-xs mt-1">
-          <aura-badge-pill tone="muted">{{ expense.category.name }}</aura-badge-pill>
-          <span class="font-body-sm text-body-sm text-on-surface-variant">
-            {{ expense.date | date: 'dd MMM yyyy' }}
+      <div class="flex items-center gap-space-sm min-w-0">
+        <div class="flex flex-col min-w-0">
+          <span class="font-sans text-body-md font-semibold text-on-surface truncate">
+            {{ expense.description || '(sin descripción)' }}
           </span>
+          <div class="flex items-center gap-space-xs mt-1">
+            <aura-badge-pill tone="muted">{{ expense.category.name }}</aura-badge-pill>
+            <span class="font-body-sm text-body-sm text-on-surface-variant">
+              {{ expense.date | date: 'dd MMM yyyy' }}
+            </span>
+          </div>
         </div>
       </div>
 
       <div class="flex items-center gap-space-xs flex-shrink-0">
-        <span class="font-numeric text-label-numeric-md font-bold text-on-surface whitespace-nowrap">
-          {{ expense.amount | currency: 'EUR' }}
+        <span
+          class="font-numeric text-label-numeric-md font-bold whitespace-nowrap"
+          [class]="expense.type === 'INCOME' ? 'text-primary' : 'text-on-surface'"
+        >
+          {{ expense.type === 'INCOME' ? '+' : '−' }}{{ expense.amount | currency: 'EUR' }}
         </span>
         <button
           type="button"
           class="p-1.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors"
-          aria-label="Editar gasto"
+          aria-label="Editar movimiento"
           (click)="edit.emit(expense)"
         >
           <span class="material-symbols-outlined text-[18px]">edit</span>
@@ -30,7 +35,7 @@
         <button
           type="button"
           class="p-1.5 rounded-lg text-on-surface-variant hover:text-tertiary-fixed-dim hover:bg-surface-container-high transition-colors"
-          aria-label="Eliminar gasto"
+          aria-label="Eliminar movimiento"
           (click)="delete.emit(expense)"
         >
           <span class="material-symbols-outlined text-[18px]">delete</span>

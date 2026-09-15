@@ -1,0 +1,110 @@
+<div
+  class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-space-md"
+  (click)="onClose()"
+>
+  <div
+    class="bg-surface-container-low rounded-xl shadow-2xl w-full max-w-sm p-space-lg max-h-[85vh] overflow-y-auto"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="flex items-center justify-between mb-space-md">
+      <h2 class="font-heading text-headline-md text-on-surface font-bold">Categorías</h2>
+      <button
+        type="button"
+        class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
+        aria-label="Cerrar"
+        (click)="onClose()"
+      >
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+
+    @if (createError(); as err) {
+      <div
+        class="flex items-center gap-space-xs bg-tertiary-container/10 text-tertiary-fixed-dim rounded-lg px-space-sm py-2 mb-space-md"
+      >
+        <span class="material-symbols-outlined text-[18px]">error</span>
+        <span class="font-body-sm text-body-sm">{{ err.error }}</span>
+      </div>
+    }
+
+    <form (submit)="onSubmit($event)" class="flex items-start gap-space-sm mb-space-md">
+      <div class="flex flex-col gap-1 flex-1">
+        <input
+          id="new-category-name"
+          type="text"
+          maxlength="50"
+          placeholder="Nueva categoría (p. ej. Alimentación)"
+          class="w-full bg-surface-container text-on-surface font-sans text-body-md px-space-sm py-2.5 rounded-lg focus:outline-none focus:bg-surface-container-high transition-all"
+          [value]="newCategoryName()"
+          (input)="onNameInput($any($event.target).value)"
+          (blur)="nameTouched.set(true)"
+        />
+        @if (nameError(); as msg) {
+          <p class="text-tertiary-fixed-dim font-body-sm text-body-sm">{{ msg }}</p>
+        }
+      </div>
+      <button
+        type="submit"
+        [disabled]="creating()"
+        class="flex items-center justify-center bg-primary-container hover:bg-primary-fixed-dim text-on-primary-container font-bold w-10 h-10 rounded-lg transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex-shrink-0"
+        aria-label="Añadir categoría"
+      >
+        <span class="material-symbols-outlined text-[20px]">add</span>
+      </button>
+    </form>
+
+    @if (deleteError(); as delErr) {
+      <div
+        class="flex items-center gap-space-xs bg-tertiary-container/10 text-tertiary-fixed-dim rounded-lg px-space-sm py-2 mb-space-md"
+      >
+        <span class="material-symbols-outlined text-[18px]">block</span>
+        <span class="font-body-sm text-body-sm">
+          No se pudo eliminar "{{ delErr.category.name }}": {{ delErr.message }}
+        </span>
+      </div>
+    }
+
+    @if (loading()) {
+      <p class="font-sans text-body-sm text-on-surface-variant text-center py-space-md">Cargando…</p>
+    }
+
+    @if (loadError(); as err) {
+      <div class="flex items-center justify-between gap-space-sm">
+        <span class="font-sans text-body-sm text-tertiary-fixed-dim">{{ err.error }}</span>
+        <button
+          type="button"
+          (click)="loadCategories()"
+          class="px-space-sm py-1 rounded-full bg-surface-container-high text-on-surface font-label-numeric-md text-label-numeric-md hover:bg-surface-container-highest transition-colors"
+        >
+          Reintentar
+        </button>
+      </div>
+    }
+
+    @if (!loading() && !loadError() && categories().length === 0) {
+      <p class="font-sans text-body-sm text-on-surface-variant text-center py-space-sm">
+        Todavía no hay categorías. Crea la primera arriba.
+      </p>
+    }
+
+    @if (!loading() && !loadError() && categories().length > 0) {
+      <div class="flex flex-col gap-space-xs">
+        @for (category of categories(); track category.id) {
+          <div
+            class="flex items-center justify-between gap-space-sm px-space-sm py-2 rounded-lg bg-surface-container/60 hover:bg-surface-container transition-all"
+          >
+            <span class="font-sans text-body-md text-on-surface">{{ category.name }}</span>
+            <button
+              type="button"
+              class="p-1 rounded-lg text-on-surface-variant hover:text-tertiary-fixed-dim hover:bg-surface-container-high transition-colors"
+              aria-label="Eliminar categoría"
+              (click)="onDelete(category)"
+            >
+              <span class="material-symbols-outlined text-[16px]">delete</span>
+            </button>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

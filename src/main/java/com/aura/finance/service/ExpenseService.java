@@ -29,6 +29,7 @@ public class ExpenseService {
         Category category = findCategoryOrThrow(request.categoryId());
 
         Expense expense = Expense.builder()
+                .type(request.type())
                 .amount(request.amount())
                 .date(request.date())
                 .description(request.description())
@@ -43,6 +44,7 @@ public class ExpenseService {
         Expense expense = findExpenseOrThrow(id);
         Category category = findCategoryOrThrow(request.categoryId());
 
+        expense.setType(request.type());
         expense.setAmount(request.amount());
         expense.setDate(request.date());
         expense.setDescription(request.description());
@@ -99,6 +101,7 @@ public class ExpenseService {
 
         return new ExpenseResponse(
                 expense.getId(),
+                expense.getType(),
                 expense.getAmount(),
                 expense.getDate(),
                 expense.getDescription(),

@@ -1,0 +1,67 @@
+<div
+  class="fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-space-md"
+  (click)="onCancel()"
+>
+  <div
+    class="bg-surface-container-low rounded-xl shadow-2xl w-full max-w-sm p-space-lg"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="flex items-center justify-between mb-space-md">
+      <h2 class="font-heading text-headline-md text-on-surface font-bold">
+        {{ currentAmount() !== null ? 'Editar presupuesto' : 'Crear presupuesto' }} · {{ periodLabel() }}
+      </h2>
+      <button
+        type="button"
+        class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
+        aria-label="Cerrar"
+        (click)="onCancel()"
+      >
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+
+    @if (serverError(); as err) {
+      <div
+        class="flex items-center gap-space-xs bg-tertiary-container/10 text-tertiary-fixed-dim rounded-lg px-space-sm py-2 mb-space-md"
+      >
+        <span class="material-symbols-outlined text-[18px]">error</span>
+        <span class="font-body-sm text-body-sm">{{ err }}</span>
+      </div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit($event)" class="flex flex-col gap-space-md">
+      <div>
+        <label class="block font-body-sm text-body-sm text-on-surface-variant mb-1" for="budget-amount"
+          >Importe (€)</label
+        >
+        <input
+          id="budget-amount"
+          type="number"
+          step="0.01"
+          formControlName="amount"
+          class="w-full bg-surface-container text-on-surface font-numeric text-label-numeric-md px-space-sm py-2.5 rounded-lg focus:outline-none focus:bg-surface-container-high transition-all"
+        />
+        @if (errorFor('amount'); as msg) {
+          <p class="text-tertiary-fixed-dim font-body-sm text-body-sm mt-1">{{ msg }}</p>
+        }
+      </div>
+
+      <div class="flex items-center justify-end gap-space-sm mt-space-sm">
+        <button
+          type="button"
+          (click)="onCancel()"
+          class="px-space-md py-2 rounded-full font-label-numeric-md text-label-numeric-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          [disabled]="saving()"
+          class="px-space-md py-2 rounded-full bg-primary-container hover:bg-primary-fixed-dim text-on-primary-container font-label-numeric-md text-label-numeric-md font-bold transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+        >
+          {{ saving() ? 'Guardando…' : 'Guardar' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

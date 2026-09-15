@@ -2,6 +2,8 @@ package com.aura.finance.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -15,6 +17,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -50,4 +53,15 @@ public class Expense {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
+
+    /**
+     * EXPENSE resta al balance, INCOME suma. Con valor por defecto EXPENSE a
+     * nivel de columna para que las filas ya existentes (todas gastos antes
+     * de este cambio) sigan siendo válidas sin migración manual de datos.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @ColumnDefault("'EXPENSE'")
+    @Builder.Default
+    private MovementType type = MovementType.EXPENSE;
 }

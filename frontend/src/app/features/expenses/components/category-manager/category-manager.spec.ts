@@ -2,17 +2,17 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideHttpClient } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { API_BASE_URL, DEFAULT_API_BASE_URL } from '../../core/config/api.config';
-import { Settings } from './settings';
+import { API_BASE_URL, DEFAULT_API_BASE_URL } from '../../../../core/config/api.config';
+import { CategoryManager } from './category-manager';
 
-describe('Settings', () => {
-  let component: Settings;
-  let fixture: ComponentFixture<Settings>;
+describe('CategoryManager', () => {
+  let component: CategoryManager;
+  let fixture: ComponentFixture<CategoryManager>;
   let httpMock: HttpTestingController;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Settings],
+      imports: [CategoryManager],
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
@@ -20,7 +20,7 @@ describe('Settings', () => {
       ],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(Settings);
+    fixture = TestBed.createComponent(CategoryManager);
     component = fixture.componentInstance;
     httpMock = TestBed.inject(HttpTestingController);
 

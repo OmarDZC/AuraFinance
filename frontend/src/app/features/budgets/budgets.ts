@@ -1,6 +1,5 @@
 import { CurrencyPipe } from '@angular/common';
-import { Component, computed, effect, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Component, LOCALE_ID, computed, effect, inject, signal } from '@angular/core';
 
 import { ApiError } from '../../core/models/api-error.model';
 import { Budget, BudgetRequest } from '../../core/models/budget.model';
@@ -8,39 +7,39 @@ import { MonthlySummary } from '../../core/models/monthly-summary.model';
 import { BudgetService } from '../../core/services/budget.service';
 import { SummaryService } from '../../core/services/summary.service';
 import { PeriodStore } from '../../core/state/period.store';
-import { maxTwoDecimalsValidator } from '../../shared/validators/money.validator';
 import { CircularGauge } from '../../shared/ui/circular-gauge/circular-gauge';
 import { EmptyState } from '../../shared/ui/empty-state/empty-state';
 import { GlassCard } from '../../shared/ui/glass-card/glass-card';
 import { StatTile } from '../../shared/ui/stat-tile/stat-tile';
 
+import { BudgetForm } from './components/budget-form/budget-form';
+
 /**
- * Página "Monthly Budget": consulta, crea y edita el presupuesto del mes
- * seleccionado (PeriodStore, compartido con Topbar/Dashboard/Expenses).
+ * Página interna "Presupuesto" (/budget): ya no está enlazada en la
+ * navegación principal — la gestión del presupuesto se hizo accesible
+ * directamente desde el Dashboard (icono junto a la cifra "Presupuesto"),
+ * que es el flujo principal para el usuario. Esta ruta se mantiene
+ * alcanzable (sin romper nada existente) y reutiliza el mismo BudgetForm.
  *
  * GET /api/budgets/summary?month=&year= no devuelve el `id` del presupuesto
  * (solo cifras agregadas), así que para poder editarlo hace falta cruzarlo
  * con GET /api/budgets (todos) y localizar el que coincide con el periodo.
  * Por eso se mantienen dos fuentes: `budgets` (para saber si existe y su id)
  * y `summary` (para las cifras calculadas por el backend).
- *
- * El formulario de alta/edición es un único campo (amount): se mantiene
- * inline en esta página, sin componente aparte, por el mismo criterio que
- * en Categories/Settings.
  */
 @Component({
   selector: 'aura-budgets',
-  imports: [GlassCard, EmptyState, StatTile, CircularGauge, ReactiveFormsModule],
+  imports: [GlassCard, EmptyState, StatTile, CircularGauge, BudgetForm],
   templateUrl: './budgets.html',
   styleUrl: './budgets.css',
 })
 export class Budgets {
   private readonly budgetService = inject(BudgetService);
   private readonly summaryService = inject(SummaryService);
-  private readonly fb = inject(FormBuilder);
   protected readonly period = inject(PeriodStore);
 
-  private readonly currencyPipe = new CurrencyPipe('en-US');
+  private readonly locale = inject(LOCALE_ID);
+  private readonly currencyPipe = new CurrencyPipe(this.locale);
 
   // --- Datos ---
   protected readonly budgets = signal<Budget[]>([]);
@@ -57,18 +56,10 @@ export class Budgets {
       null,
   );
 
-  // --- Formulario (un único campo: amount) ---
+  // --- Formulario (BudgetForm, compartido con el icono de editar del Dashboard) ---
   protected readonly isFormOpen = signal(false);
   protected readonly saving = signal(false);
   protected readonly formError = signal<ApiError | null>(null);
-
-  protected readonly form = this.fb.group({
-    amount: this.fb.control<number | null>(null, [
-      Validators.required,
-      Validators.min(0.01),
-      maxTwoDecimalsValidator(),
-    ]),
-  });
 
   constructor() {
     this.loadBudgets();
@@ -119,12 +110,11 @@ export class Budgets {
   }
 
   protected formatCurrency(value: number): string {
-    return this.currencyPipe.transform(value, 'EUR') ?? `€${value.toFixed(2)}`;
+    return this.currencyPipe.transform(value, 'EUR') ?? `${value.toFixed(2)} €`;
   }
 
   protected openForm(): void {
     this.formError.set(null);
-    this.form.reset({ amount: this.currentBudget()?.amount ?? null });
     this.isFormOpen.set(true);
   }
 
@@ -133,14 +123,7 @@ export class Budgets {
     this.formError.set(null);
   }
 
-  protected onSubmit(event: Event): void {
-    event.preventDefault();
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
-
-    const amount = this.form.getRawValue().amount as number;
+  protected onSaveBudget(amount: number): void {
     const request: BudgetRequest = { month: this.period.month(), year: this.period.year(), amount };
     const existing = this.currentBudget();
 
@@ -161,22 +144,5 @@ export class Budgets {
         this.formError.set(err);
       },
     });
-  }
-
-  protected errorFor(controlName: 'amount'): string | null {
-    const control = this.form.get(controlName);
-    if (!control || !control.touched || control.valid) {
-      return null;
-    }
-    if (control.hasError('required')) {
-      return 'El importe es obligatorio';
-    }
-    if (control.hasError('min')) {
-      return 'El importe debe ser mayor que 0';
-    }
-    if (control.hasError('maxTwoDecimals')) {
-      return 'El importe no puede tener más de 2 decimales';
-    }
-    return null;
   }
 }

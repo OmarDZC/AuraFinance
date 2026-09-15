@@ -1,11 +1,13 @@
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, LOCALE_ID, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { catchError, forkJoin, of, throwError } from 'rxjs';
 
 import { ApiError } from '../../core/models/api-error.model';
-import { Expense } from '../../core/models/expense.model';
+import { Budget, BudgetRequest } from '../../core/models/budget.model';
+import { Expense, ExpenseRequest } from '../../core/models/expense.model';
 import { MonthlySummary } from '../../core/models/monthly-summary.model';
+import { BudgetService } from '../../core/services/budget.service';
 import { ExpenseService } from '../../core/services/expense.service';
 import { SummaryService } from '../../core/services/summary.service';
 import { previousPeriodOf, PeriodStore } from '../../core/state/period.store';
@@ -14,6 +16,9 @@ import { CircularGauge } from '../../shared/ui/circular-gauge/circular-gauge';
 import { GlassCard } from '../../shared/ui/glass-card/glass-card';
 import { ProgressBar } from '../../shared/ui/progress-bar/progress-bar';
 import { StatTile } from '../../shared/ui/stat-tile/stat-tile';
+
+import { BudgetForm } from '../budgets/components/budget-form/budget-form';
+import { ExpenseForm } from '../expenses/components/expense-form/expense-form';
 
 interface CategorySlice {
   name: string;
@@ -56,56 +61,96 @@ function groupByDay(expenses: Expense[], daysInMonth: number): DaySlice[] {
  * Dashboard: pantalla principal, con datos reales del backend para el
  * periodo seleccionado (PeriodStore, compartido con Topbar/Budget/Expenses).
  *
+ * Es también el centro de acción de la app: el botón flotante "+" reutiliza
+ * el mismo ExpenseForm que la página Expenses (mismo componente, sin
+ * duplicar formulario) para poder añadir un movimiento sin salir del
+ * Dashboard; al guardar, se recarga inmediatamente.
+ *
  * Todo lo derivado (desglose por categoría, evolución diaria, comparación
- * con el mes anterior, total gastado) se calcula en el cliente a partir de
- * los gastos reales — no requiere un presupuesto configurado. Las cifras
- * que sí dependen de un presupuesto (restante, % usado, límite diario) se
- * degradan con elegancia a un aviso "sin presupuesto" cuando
+ * con el mes anterior) se calcula en el cliente filtrando por `type` los
+ * movimientos ya cargados — no requiere un presupuesto configurado y
+ * distingue explícitamente gastos de ingresos:
+ * - "gastado", desglose por categoría y evolución diaria: solo EXPENSE.
+ * - "ingresos": solo INCOME.
+ * Las cifras que sí dependen de un presupuesto (restante, % usado, límite
+ * diario) se degradan con elegancia a un aviso "sin presupuesto" cuando
  * /api/budgets/summary devuelve 404 para el periodo, sin bloquear el resto
  * de la pantalla.
+ *
+ * El presupuesto también se crea/edita desde aquí (icono junto a la cifra
+ * "Presupuesto", reutilizando BudgetForm — el mismo componente que usa la
+ * página interna /budget): por eso este componente también conoce
+ * BudgetService y mantiene su propia lista de presupuestos, igual que hace
+ * Budgets, para poder resolver el `id` a actualizar (el summary no lo trae).
  */
 @Component({
   selector: 'aura-dashboard',
-  imports: [GlassCard, StatTile, CircularGauge, ProgressBar, BadgePill, RouterLink, DecimalPipe],
+  imports: [
+    GlassCard,
+    StatTile,
+    CircularGauge,
+    ProgressBar,
+    BadgePill,
+    RouterLink,
+    DecimalPipe,
+    ExpenseForm,
+    BudgetForm,
+  ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
 export class Dashboard {
   private readonly expenseService = inject(ExpenseService);
   private readonly summaryService = inject(SummaryService);
+  private readonly budgetService = inject(BudgetService);
   protected readonly period = inject(PeriodStore);
 
-  private readonly currencyPipe = new CurrencyPipe('en-US');
-  private readonly datePipe = new DatePipe('en-US');
+  private readonly locale = inject(LOCALE_ID);
+  private readonly currencyPipe = new CurrencyPipe(this.locale);
+  private readonly datePipe = new DatePipe(this.locale);
 
   protected readonly loading = signal(false);
   protected readonly error = signal<ApiError | null>(null);
 
   protected readonly summary = signal<MonthlySummary | null>(null);
-  protected readonly currentExpenses = signal<Expense[]>([]);
-  protected readonly previousExpenses = signal<Expense[]>([]);
+  protected readonly currentMovements = signal<Expense[]>([]);
+  protected readonly previousMovements = signal<Expense[]>([]);
 
   protected readonly hasBudget = computed(() => this.summary() !== null);
-  protected readonly totalSpent = computed(() => sumAmounts(this.currentExpenses()));
-  protected readonly previousTotalSpent = computed(() => sumAmounts(this.previousExpenses()));
 
-  protected readonly categoryBreakdown = computed(() => groupByCategory(this.currentExpenses()));
+  // --- Gastos e ingresos, siempre separados por `type` ---
+  protected readonly currentExpensesOnly = computed(() =>
+    this.currentMovements().filter((m) => m.type === 'EXPENSE'),
+  );
+  protected readonly currentIncomeOnly = computed(() =>
+    this.currentMovements().filter((m) => m.type === 'INCOME'),
+  );
+  protected readonly previousExpensesOnly = computed(() =>
+    this.previousMovements().filter((m) => m.type === 'EXPENSE'),
+  );
+
+  protected readonly totalSpent = computed(() => sumAmounts(this.currentExpensesOnly()));
+  protected readonly totalIncome = computed(() => sumAmounts(this.currentIncomeOnly()));
+  protected readonly previousTotalSpent = computed(() => sumAmounts(this.previousExpensesOnly()));
+
+  protected readonly categoryBreakdown = computed(() => groupByCategory(this.currentExpensesOnly()));
 
   protected readonly dailyBreakdown = computed(() =>
-    groupByDay(this.currentExpenses(), this.period.daysInMonth()),
+    groupByDay(this.currentExpensesOnly(), this.period.daysInMonth()),
   );
   protected readonly maxDailyTotal = computed(() =>
     Math.max(1, ...this.dailyBreakdown().map((d) => d.total)),
   );
   protected readonly today = new Date().getDate();
 
-  protected readonly recentExpenses = computed(() =>
-    [...this.currentExpenses()]
+  /** Los 5 movimientos más recientes, gastos e ingresos mezclados. */
+  protected readonly recentMovements = computed(() =>
+    [...this.currentMovements()]
       .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.id - a.id))
       .slice(0, 5),
   );
 
-  /** null si no hay datos reales del mes anterior con los que comparar. */
+  /** null si no hay gasto real del mes anterior con el que comparar. */
   protected readonly monthComparison = computed(() => {
     const prevTotal = this.previousTotalSpent();
     const currTotal = this.totalSpent();
@@ -128,6 +173,22 @@ export class Dashboard {
     return daysRemaining > 0 ? s.remaining / daysRemaining : null;
   });
 
+  // --- Botón flotante "+" → mismo ExpenseForm que Expenses ---
+  protected readonly isFormOpen = signal(false);
+  protected readonly formError = signal<ApiError | null>(null);
+  protected readonly saving = signal(false);
+
+  // --- Editar/crear presupuesto in-situ → mismo BudgetForm que /budget ---
+  protected readonly budgets = signal<Budget[]>([]);
+  protected readonly currentBudgetEntity = computed<Budget | null>(
+    () =>
+      this.budgets().find((b) => b.month === this.period.month() && b.year === this.period.year()) ??
+      null,
+  );
+  protected readonly isBudgetFormOpen = signal(false);
+  protected readonly budgetFormError = signal<ApiError | null>(null);
+  protected readonly savingBudget = signal(false);
+
   constructor() {
     effect(() => {
       this.period.month();
@@ -147,13 +208,15 @@ export class Dashboard {
     forkJoin({
       current: this.expenseService.getAll({ month, year }),
       previous: this.expenseService.getAll({ month: prev.month, year: prev.year }),
+      budgets: this.budgetService.getAll(),
       summary: this.summaryService.getMonthlySummary(month, year).pipe(
         catchError((err: ApiError) => (err.status === 404 ? of(null) : throwError(() => err))),
       ),
     }).subscribe({
-      next: ({ current, previous, summary }) => {
-        this.currentExpenses.set(current);
-        this.previousExpenses.set(previous);
+      next: ({ current, previous, budgets, summary }) => {
+        this.currentMovements.set(current);
+        this.previousMovements.set(previous);
+        this.budgets.set(budgets);
         this.summary.set(summary);
         this.loading.set(false);
       },
@@ -165,7 +228,7 @@ export class Dashboard {
   }
 
   protected formatCurrency(value: number): string {
-    return this.currencyPipe.transform(value, 'EUR') ?? `€${value.toFixed(2)}`;
+    return this.currencyPipe.transform(value, 'EUR') ?? `${value.toFixed(2)} €`;
   }
 
   protected formatDate(value: string): string {
@@ -178,5 +241,64 @@ export class Dashboard {
       return 4;
     }
     return Math.max(6, (total / this.maxDailyTotal()) * 100);
+  }
+
+  protected openAddMovement(): void {
+    this.formError.set(null);
+    this.isFormOpen.set(true);
+  }
+
+  protected closeForm(): void {
+    this.isFormOpen.set(false);
+    this.formError.set(null);
+  }
+
+  protected onSave(request: ExpenseRequest): void {
+    this.saving.set(true);
+    this.formError.set(null);
+    this.expenseService.create(request).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.closeForm();
+        this.loadDashboard();
+      },
+      error: (err: ApiError) => {
+        this.saving.set(false);
+        this.formError.set(err);
+      },
+    });
+  }
+
+  protected openBudgetForm(): void {
+    this.budgetFormError.set(null);
+    this.isBudgetFormOpen.set(true);
+  }
+
+  protected closeBudgetForm(): void {
+    this.isBudgetFormOpen.set(false);
+    this.budgetFormError.set(null);
+  }
+
+  protected onSaveBudget(amount: number): void {
+    const request: BudgetRequest = { month: this.period.month(), year: this.period.year(), amount };
+    const existing = this.currentBudgetEntity();
+
+    this.savingBudget.set(true);
+    this.budgetFormError.set(null);
+    const operation = existing
+      ? this.budgetService.update(existing.id, request)
+      : this.budgetService.create(request);
+
+    operation.subscribe({
+      next: () => {
+        this.savingBudget.set(false);
+        this.closeBudgetForm();
+        this.loadDashboard();
+      },
+      error: (err: ApiError) => {
+        this.savingBudget.set(false);
+        this.budgetFormError.set(err);
+      },
+    });
   }
 }

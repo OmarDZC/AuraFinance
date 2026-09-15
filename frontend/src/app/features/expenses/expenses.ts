@@ -152,7 +152,8 @@ export class Expenses {
 
   protected onDelete(expense: Expense): void {
     const label = expense.description?.trim() || expense.category.name;
-    const confirmed = confirm(`¿Eliminar el gasto "${label}" de ${expense.amount} €?`);
+    const kind = expense.type === 'INCOME' ? 'ingreso' : 'gasto';
+    const confirmed = confirm(`¿Eliminar el ${kind} "${label}" de ${expense.amount} €?`);
     if (!confirmed) {
       return;
     }

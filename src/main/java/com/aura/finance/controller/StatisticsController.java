@@ -1,0 +1,24 @@
+package com.aura.finance.controller;
+
+import com.aura.finance.dto.statistics.StatisticsResponse;
+import com.aura.finance.service.StatisticsService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/statistics")
+@RequiredArgsConstructor
+public class StatisticsController {
+
+    private final StatisticsService statisticsService;
+
+    @GetMapping
+    public StatisticsResponse getStatistics(
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer year) {
+        return statisticsService.getStatistics(month, year);
+    }
+}

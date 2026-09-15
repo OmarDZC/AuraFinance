@@ -1,5 +1,8 @@
+import localeEs from '@angular/common/locales/es';
+import { registerLocaleData } from '@angular/common';
 import {
   ApplicationConfig,
+  LOCALE_ID,
   provideBrowserGlobalErrorListeners,
   provideZoneChangeDetection,
 } from '@angular/core';
@@ -10,6 +13,8 @@ import { routes } from './app.routes';
 import { API_BASE_URL, DEFAULT_API_BASE_URL } from './core/config/api.config';
 import { apiErrorInterceptor } from './core/http/api-error.interceptor';
 
+registerLocaleData(localeEs);
+
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
@@ -18,5 +23,7 @@ export const appConfig: ApplicationConfig = {
     // core/services ya consume la API real del backend a través de este HttpClient.
     provideHttpClient(withFetch(), withInterceptors([apiErrorInterceptor])),
     { provide: API_BASE_URL, useValue: DEFAULT_API_BASE_URL },
+    // Interfaz en español: formatos de fecha/número/moneda con CurrencyPipe/DatePipe.
+    { provide: LOCALE_ID, useValue: 'es-ES' },
   ],
 };

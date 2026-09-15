@@ -2,6 +2,7 @@ package com.aura.finance.service;
 
 import com.aura.finance.dto.budget.MonthlySummaryResponse;
 import com.aura.finance.entity.Budget;
+import com.aura.finance.entity.MovementType;
 import com.aura.finance.exception.ResourceNotFoundException;
 import com.aura.finance.repository.BudgetRepository;
 import com.aura.finance.repository.ExpenseRepository;
@@ -19,6 +20,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,7 +39,10 @@ class SummaryServiceTest {
     void calculatesRemainingAndPercentageUsedCorrectly() {
         Budget budget = Budget.builder().id(1L).month(9).year(2026).amount(new BigDecimal("1300.00")).build();
         when(budgetRepository.findByMonthAndYear(9, 2026)).thenReturn(Optional.of(budget));
-        when(expenseRepository.sumAmountByDateBetween(any(), any())).thenReturn(new BigDecimal("325.00"));
+        when(expenseRepository.sumAmountByTypeAndDateBetween(eq(MovementType.EXPENSE), any(), any()))
+                .thenReturn(new BigDecimal("325.00"));
+        when(expenseRepository.sumAmountByTypeAndDateBetween(eq(MovementType.INCOME), any(), any()))
+                .thenReturn(BigDecimal.ZERO);
 
         MonthlySummaryResponse summary = summaryService.getMonthlySummary(9, 2026);
 
@@ -48,12 +53,29 @@ class SummaryServiceTest {
     }
 
     @Test
+    void includesTotalIncomeWithoutAffectingRemaining() {
+        Budget budget = Budget.builder().id(1L).month(9).year(2026).amount(new BigDecimal("1300.00")).build();
+        when(budgetRepository.findByMonthAndYear(9, 2026)).thenReturn(Optional.of(budget));
+        when(expenseRepository.sumAmountByTypeAndDateBetween(eq(MovementType.EXPENSE), any(), any()))
+                .thenReturn(new BigDecimal("325.00"));
+        when(expenseRepository.sumAmountByTypeAndDateBetween(eq(MovementType.INCOME), any(), any()))
+                .thenReturn(new BigDecimal("500.00"));
+
+        MonthlySummaryResponse summary = summaryService.getMonthlySummary(9, 2026);
+
+        assertThat(summary.totalIncome()).isEqualByComparingTo("500.00");
+        // Los ingresos no deben alterar remaining ni percentageUsed (solo dependen del gasto).
+        assertThat(summary.remaining()).isEqualByComparingTo("975.00");
+        assertThat(summary.percentageUsed()).isEqualByComparingTo("25.00");
+    }
+
+    @Test
     void defaultsToCurrentMonthAndYearWhenNotProvided() {
         LocalDate now = LocalDate.now();
         Budget budget = Budget.builder().id(1L).month(now.getMonthValue()).year(now.getYear())
                 .amount(new BigDecimal("1000.00")).build();
         when(budgetRepository.findByMonthAndYear(now.getMonthValue(), now.getYear())).thenReturn(Optional.of(budget));
-        when(expenseRepository.sumAmountByDateBetween(any(), any())).thenReturn(BigDecimal.ZERO);
+        when(expenseRepository.sumAmountByTypeAndDateBetween(any(), any(), any())).thenReturn(BigDecimal.ZERO);
 
         MonthlySummaryResponse summary = summaryService.getMonthlySummary(null, null);
 
@@ -73,7 +95,10 @@ class SummaryServiceTest {
     void percentageUsedIsZeroWhenBudgetIsZeroOrNegative() {
         Budget budget = Budget.builder().id(1L).month(9).year(2026).amount(BigDecimal.ZERO).build();
         when(budgetRepository.findByMonthAndYear(9, 2026)).thenReturn(Optional.of(budget));
-        when(expenseRepository.sumAmountByDateBetween(any(), any())).thenReturn(new BigDecimal("50.00"));
+        when(expenseRepository.sumAmountByTypeAndDateBetween(eq(MovementType.EXPENSE), any(), any()))
+                .thenReturn(new BigDecimal("50.00"));
+        when(expenseRepository.sumAmountByTypeAndDateBetween(eq(MovementType.INCOME), any(), any()))
+                .thenReturn(BigDecimal.ZERO);
 
         MonthlySummaryResponse summary = summaryService.getMonthlySummary(9, 2026);
 
@@ -84,9 +109,11 @@ class SummaryServiceTest {
     void usesFirstAndLastDayOfMonthWhenSummingExpenses() {
         Budget budget = Budget.builder().id(1L).month(2).year(2024).amount(new BigDecimal("500.00")).build();
         when(budgetRepository.findByMonthAndYear(2, 2024)).thenReturn(Optional.of(budget));
-        when(expenseRepository.sumAmountByDateBetween(
-                YearMonth.of(2024, 2).atDay(1), YearMonth.of(2024, 2).atEndOfMonth()))
+        when(expenseRepository.sumAmountByTypeAndDateBetween(
+                eq(MovementType.EXPENSE), eq(YearMonth.of(2024, 2).atDay(1)), eq(YearMonth.of(2024, 2).atEndOfMonth())))
                 .thenReturn(new BigDecimal("100.00"));
+        when(expenseRepository.sumAmountByTypeAndDateBetween(eq(MovementType.INCOME), any(), any()))
+                .thenReturn(BigDecimal.ZERO);
 
         MonthlySummaryResponse summary = summaryService.getMonthlySummary(2, 2024);
 

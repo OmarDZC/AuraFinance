@@ -5,32 +5,27 @@ export const routes: Routes = [
   {
     path: 'dashboard',
     loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard),
-    title: 'Aura Finance · Dashboard',
+    title: 'Aura Finance · Resumen',
   },
   {
     path: 'expenses',
     loadComponent: () => import('./features/expenses/expenses').then((m) => m.Expenses),
-    title: 'Aura Finance · Expenses',
+    title: 'Aura Finance · Gastos',
   },
   {
     path: 'budget',
     loadComponent: () => import('./features/budgets/budgets').then((m) => m.Budgets),
-    title: 'Aura Finance · Monthly Budget',
+    title: 'Aura Finance · Presupuesto',
   },
   {
     path: 'statistics',
     loadComponent: () => import('./features/statistics/statistics').then((m) => m.Statistics),
-    title: 'Aura Finance · Statistics',
+    title: 'Aura Finance · Estadísticas',
   },
   {
     path: 'goals',
     loadComponent: () => import('./features/goals/goals').then((m) => m.Goals),
-    title: 'Aura Finance · Goals',
-  },
-  {
-    path: 'settings',
-    loadComponent: () => import('./features/settings/settings').then((m) => m.Settings),
-    title: 'Aura Finance · Settings',
+    title: 'Aura Finance · Objetivos',
   },
   { path: '**', redirectTo: 'dashboard' },
 ];

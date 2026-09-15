@@ -1,37 +1,41 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, output, signal } from '@angular/core';
 
-import { ApiError } from '../../core/models/api-error.model';
-import { Category } from '../../core/models/category.model';
-import { CategoryService } from '../../core/services/category.service';
-import { EmptyState } from '../../shared/ui/empty-state/empty-state';
-import { GlassCard } from '../../shared/ui/glass-card/glass-card';
+import { ApiError } from '../../../../core/models/api-error.model';
+import { Category } from '../../../../core/models/category.model';
+import { CategoryService } from '../../../../core/services/category.service';
 
 /**
- * Página de ajustes. Por ahora, solo gestión de categorías (crear/listar/
- * eliminar), que es lo único que expone el backend (no hay PUT ni campos
- * adicionales). Al ser un único campo y sin edición, se mantiene todo en
- * este componente en vez de extraer CategoryForm/CategoryList — separarlos
- * no aportaría nada para algo tan pequeño (a diferencia de Expenses, donde
- * el formulario se reutiliza en crear y editar y tiene 4 campos validados).
+ * Modal ligero para crear/listar/eliminar categorías, accesible desde el
+ * propio formulario de gasto/ingreso (junto al selector de categoría) en
+ * vez de vivir en una pantalla de "Configuración" aparte. Es el mismo CRUD
+ * que antes vivía en features/settings, solo reubicado: mismas reglas
+ * (nombre obligatorio, máx. 50 caracteres, 409 si la categoría está en uso).
+ *
+ * Se cierra emitiendo `close`; el padre (ExpenseForm) recarga su propia
+ * lista de categorías al recibirlo, así el selector queda actualizado sin
+ * necesidad de compartir estado entre ambos componentes.
  */
 @Component({
-  selector: 'aura-settings',
-  imports: [GlassCard, EmptyState],
-  templateUrl: './settings.html',
-  styleUrl: './settings.css',
+  selector: 'aura-category-manager',
+  imports: [],
+  templateUrl: './category-manager.html',
+  styleUrl: './category-manager.css',
 })
-export class Settings {
+export class CategoryManager {
   private readonly categoryService = inject(CategoryService);
+
+  close = output<void>();
 
   protected readonly categories = signal<Category[]>([]);
   protected readonly loading = signal(false);
   protected readonly loadError = signal<ApiError | null>(null);
 
-  // --- Formulario de alta (un único campo: name) ---
   protected readonly newCategoryName = signal('');
   protected readonly nameTouched = signal(false);
   protected readonly creating = signal(false);
   protected readonly createError = signal<ApiError | null>(null);
+
+  protected readonly deleteError = signal<{ category: Category; message: string } | null>(null);
 
   /** Espeja @NotBlank/@Size(max=50) de CategoryRequest (backend). */
   protected readonly nameError = computed(() => {
@@ -47,9 +51,6 @@ export class Settings {
     }
     return null;
   });
-
-  // --- Borrado ---
-  protected readonly deleteError = signal<{ category: Category; message: string } | null>(null);
 
   constructor() {
     this.loadCategories();
@@ -112,5 +113,9 @@ export class Settings {
         this.deleteError.set({ category, message: err.error });
       },
     });
+  }
+
+  protected onClose(): void {
+    this.close.emit();
   }
 }

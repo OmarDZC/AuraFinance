@@ -1,6 +1,11 @@
 <div class="flex flex-col gap-0.5">
-  <span class="font-label-caps text-label-caps uppercase text-on-surface-variant tracking-wider">{{
-    label()
-  }}</span>
+  <div class="flex items-center gap-1">
+    <span class="font-label-caps text-label-caps uppercase text-on-surface-variant tracking-wider">{{
+      label()
+    }}</span>
+    <!-- Slot opcional para una acción pequeña (p. ej. editar el presupuesto).
+         Vacío por defecto: no afecta a los usos existentes que no proyectan nada. -->
+    <ng-content></ng-content>
+  </div>
   <span class="font-numeric text-label-numeric-lg font-bold" [class]="valueClass()">{{ value() }}</span>
 </div>

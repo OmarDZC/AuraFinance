@@ -7,7 +7,7 @@ import { BadgePill } from '../../ui/badge-pill/badge-pill';
  * Barra superior: botón de menú (mobile), selector de mes y acciones.
  *
  * El selector de mes delega en PeriodStore (core/state), la única fuente de
- * verdad del periodo seleccionado: Dashboard, Monthly Budget y Expenses lo
+ * verdad del periodo seleccionado: Dashboard, Presupuesto y Gastos lo
  * comparten, así que cambiar el mes aquí los actualiza a todos.
  */
 @Component({
@@ -23,10 +23,10 @@ export class Topbar {
 
   private readonly today = new Date();
 
-  /** "Day X of Y" del mes real del sistema (solo tiene sentido para el mes actual). */
+  /** "Día X de Y" del mes real del sistema (solo tiene sentido para el mes actual). */
   protected readonly cycleLabel = computed(() => {
     const daysInMonth = new Date(this.today.getFullYear(), this.today.getMonth() + 1, 0).getDate();
-    return `Cycle: Day ${this.today.getDate()} of ${daysInMonth}`;
+    return `Día ${this.today.getDate()} de ${daysInMonth}`;
   });
 
   protected previousMonth(): void {

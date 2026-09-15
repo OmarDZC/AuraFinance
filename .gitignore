@@ -31,3 +31,25 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Java / Maven ###
+*.class
+
+### Angular / Node (frontend/) ###
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+### Sistema ###
+.DS_Store
+Thumbs.db
+
+### Archivos locales / secretos ###
+.env
+.env.*
+application-local.yaml
+application-local.yml
+application-local.properties

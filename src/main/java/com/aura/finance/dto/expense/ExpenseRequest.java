@@ -1,5 +1,6 @@
 package com.aura.finance.dto.expense;
 
+import com.aura.finance.entity.MovementType;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
@@ -10,6 +11,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record ExpenseRequest(
+
+        @NotNull(message = "El tipo de movimiento es obligatorio")
+        MovementType type,
 
         @NotNull(message = "El importe es obligatorio")
         @DecimalMin(value = "0.01", message = "El importe debe ser mayor que 0")

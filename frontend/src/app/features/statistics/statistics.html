@@ -1,5 +1,258 @@
-<aura-empty-state
-  icon="analytics"
-  title="Statistics"
-  message="Esta sección no tiene todavía diseño de Stitch ni backend propio. Se definirá en una fase futura."
-></aura-empty-state>
+<div class="flex flex-col gap-space-lg">
+  <!-- Encabezado + navegación de periodo (comparte PeriodStore con Topbar/Dashboard) -->
+  <div class="flex flex-wrap items-center justify-between gap-space-sm">
+    <div>
+      <h1 class="font-heading text-headline-lg text-on-surface font-bold">Estadísticas</h1>
+      <p class="font-sans text-body-sm text-on-surface-variant mt-1">
+        Análisis real de {{ period.label() }}, calculado a partir de tus movimientos.
+      </p>
+    </div>
+    <div
+      class="flex items-center gap-space-xs bg-surface-container-high/80 px-space-sm py-1.5 rounded-full text-on-surface"
+    >
+      <button
+        type="button"
+        class="flex items-center text-on-surface-variant hover:text-on-surface transition-colors"
+        aria-label="Mes anterior"
+        (click)="period.previousMonth()"
+      >
+        <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+      </button>
+      <span class="font-numeric text-label-numeric-md text-on-surface font-semibold whitespace-nowrap">
+        {{ period.label() }}
+      </span>
+      <button
+        type="button"
+        class="flex items-center text-on-surface-variant hover:text-on-surface transition-colors"
+        aria-label="Mes siguiente"
+        (click)="period.nextMonth()"
+      >
+        <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Error de carga -->
+  @if (error(); as err) {
+    <aura-glass-card>
+      <div class="flex flex-wrap items-center justify-between gap-space-md">
+        <div class="flex items-center gap-space-sm text-tertiary-fixed-dim">
+          <span class="material-symbols-outlined text-[20px]">error</span>
+          <span class="font-sans text-body-md">{{ err.error }}</span>
+        </div>
+        <button
+          type="button"
+          (click)="loadStatistics()"
+          class="px-space-sm py-1.5 rounded-full bg-surface-container-high text-on-surface font-label-numeric-md text-label-numeric-md hover:bg-surface-container-highest transition-colors"
+        >
+          Reintentar
+        </button>
+      </div>
+    </aura-glass-card>
+  }
+
+  <!-- Loading -->
+  @if (loading()) {
+    <aura-glass-card>
+      <p class="font-sans text-body-md text-on-surface-variant text-center py-space-md">
+        Calculando estadísticas…
+      </p>
+    </aura-glass-card>
+  }
+
+  @if (!loading() && !error() && data(); as s) {
+    <!-- Resumen principal: presupuesto / gastado / ingresos / restante / % -->
+    <aura-glass-card>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-center">
+        <div class="lg:col-span-7 grid grid-cols-2 gap-space-md">
+          <aura-stat-tile
+            label="Presupuesto"
+            [value]="s.hasBudget ? formatCurrency(s.budgetAmount!) : 'Sin definir'"
+          ></aura-stat-tile>
+          <aura-stat-tile label="Gastado" [value]="formatCurrency(s.totalExpenses)" tone="warning"></aura-stat-tile>
+          <aura-stat-tile label="Ingresos" [value]="formatCurrency(s.totalIncome)" tone="primary"></aura-stat-tile>
+          <aura-stat-tile
+            label="Restante"
+            [value]="s.hasBudget ? formatCurrency(s.remaining!) : 'Sin definir'"
+            [tone]="s.hasBudget && s.remaining! < 0 ? 'warning' : 'primary'"
+          ></aura-stat-tile>
+        </div>
+        <div class="lg:col-span-5 flex justify-center">
+          @if (s.hasBudget) {
+            <aura-circular-gauge [percentage]="s.percentageUsed!" caption="Consumido"></aura-circular-gauge>
+          } @else {
+            <p class="font-sans text-body-sm text-on-surface-variant text-center max-w-xs">
+              No hay presupuesto configurado para <strong>{{ period.label() }}</strong>.
+              <a routerLink="/dashboard" class="text-primary hover:underline">Configúralo desde el Resumen</a>.
+            </p>
+          }
+        </div>
+      </div>
+    </aura-glass-card>
+
+    <!-- Ritmo de gasto: % de presupuesto gastado vs. % del mes transcurrido -->
+    <aura-glass-card>
+      <span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Ritmo de gasto</span>
+      @if (paceInfo(); as pace) {
+        <div class="flex items-center gap-space-md mt-space-sm">
+          <div
+            class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+            [class]="pace.boxClass"
+          >
+            <span class="material-symbols-outlined text-[26px]">{{ pace.icon }}</span>
+          </div>
+          <div>
+            <span class="font-heading text-headline-md text-on-surface font-bold">{{ pace.headline }}</span>
+            <span class="block font-body-sm text-body-sm text-on-surface-variant mt-1">
+              Gastado: {{ s.spendingPace!.percentageBudgetUsed | number: '1.0-0' }}% del presupuesto · Transcurrido:
+              {{ s.spendingPace!.percentagePeriodElapsed | number: '1.0-0' }}% del mes
+            </span>
+          </div>
+        </div>
+      } @else {
+        <p class="font-sans text-body-sm text-on-surface-variant mt-space-sm">
+          Configura un presupuesto para poder ver tu ritmo de gasto este mes.
+        </p>
+      }
+    </aura-glass-card>
+
+    <!-- Media diaria / día de mayor gasto / categoría principal -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-space-md">
+      <aura-glass-card>
+        <aura-stat-tile
+          label="Media diaria"
+          [value]="formatCurrency(s.averageDailyExpense) + '/día'"
+        ></aura-stat-tile>
+      </aura-glass-card>
+      <aura-glass-card>
+        @if (s.highestSpendingDay; as day) {
+          <aura-stat-tile
+            label="Día de mayor gasto"
+            [value]="formatDayLabel(day.date) + ' · ' + formatCurrency(day.amount)"
+          ></aura-stat-tile>
+        } @else {
+          <aura-stat-tile label="Día de mayor gasto" value="Sin gastos"></aura-stat-tile>
+        }
+      </aura-glass-card>
+      <aura-glass-card>
+        @if (s.highestSpendingCategory; as cat) {
+          <aura-stat-tile
+            label="Categoría principal"
+            [value]="cat.category.name + ' · ' + formatCurrency(cat.amount)"
+          ></aura-stat-tile>
+        } @else {
+          <aura-stat-tile label="Categoría principal" value="Sin gastos"></aura-stat-tile>
+        }
+      </aura-glass-card>
+    </div>
+
+    <!-- Evolución del gasto (diario / acumulado) -->
+    <aura-glass-card>
+      <div class="flex items-center justify-between mb-space-md flex-wrap gap-space-sm">
+        <h2 class="font-heading text-headline-md text-on-surface font-bold">Evolución del gasto</h2>
+        @if (s.expenseCount > 0) {
+          <div class="flex items-center gap-1 bg-surface-container-high/80 rounded-full p-1">
+            <button
+              type="button"
+              class="px-space-sm py-1 rounded-full font-label-caps text-label-caps uppercase transition-colors"
+              [class]="chartMode() === 'daily' ? 'bg-primary-container text-on-primary-container' : 'text-on-surface-variant'"
+              (click)="chartMode.set('daily')"
+            >
+              Diario
+            </button>
+            <button
+              type="button"
+              class="px-space-sm py-1 rounded-full font-label-caps text-label-caps uppercase transition-colors"
+              [class]="chartMode() === 'cumulative' ? 'bg-primary-container text-on-primary-container' : 'text-on-surface-variant'"
+              (click)="chartMode.set('cumulative')"
+            >
+              Acumulado
+            </button>
+          </div>
+        }
+      </div>
+      @if (s.expenseCount === 0) {
+        <p class="font-sans text-body-sm text-on-surface-variant">Sin gastos registrados este periodo.</p>
+      } @else {
+        <aura-line-chart [points]="chartPoints()" [highlightX]="highlightDay()"></aura-line-chart>
+      }
+    </aura-glass-card>
+
+    <!-- Distribución por categorías (sobre el total gastado, sin ingresos) -->
+    <aura-glass-card>
+      <h2 class="font-heading text-headline-md text-on-surface font-bold mb-space-md">Distribución por categorías</h2>
+      @if (s.categoryBreakdown.length === 0) {
+        <p class="font-sans text-body-sm text-on-surface-variant">Sin gastos registrados este periodo.</p>
+      } @else {
+        <div class="flex flex-col sm:flex-row items-center gap-space-lg">
+          <aura-donut-chart
+            [slices]="donutSlices()"
+            [centerValue]="formatCurrency(s.totalExpenses)"
+            centerLabel="Total"
+          ></aura-donut-chart>
+          <div class="flex-1 w-full flex flex-col gap-space-sm">
+            @for (item of s.categoryBreakdown; track item.category.id) {
+              <div class="flex items-center justify-between gap-space-sm">
+                <div class="flex items-center gap-space-xs min-w-0">
+                  <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" [class]="categoryDotClass($index)"></span>
+                  <span class="font-sans text-body-md text-on-surface truncate">{{ item.category.name }}</span>
+                </div>
+                <div class="text-right flex-shrink-0">
+                  <span class="font-numeric text-label-numeric-md text-on-surface font-semibold">
+                    {{ formatCurrency(item.amount) }}
+                  </span>
+                  <span class="font-body-sm text-body-sm text-on-surface-variant text-[11px] block">
+                    {{ item.percentage | number: '1.0-0' }}%
+                  </span>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </aura-glass-card>
+
+    <!-- Comparación con el mes anterior -->
+    <aura-glass-card>
+      <h2 class="font-heading text-headline-md text-on-surface font-bold mb-space-md">
+        Comparación con el mes anterior
+      </h2>
+      @if (s.previousMonthComparison; as cmp) {
+        <div class="flex flex-col gap-space-md">
+          <div class="flex items-center gap-space-md">
+            <div
+              class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+              [class]="cmp.expenseDeltaPercentage <= 0 ? 'bg-secondary/10 text-secondary' : 'bg-tertiary-container/10 text-tertiary-fixed-dim'"
+            >
+              <span class="material-symbols-outlined text-[26px]">{{
+                cmp.expenseDeltaPercentage <= 0 ? 'trending_down' : 'trending_up'
+              }}</span>
+            </div>
+            <div>
+              <span class="font-display-sm text-display-sm font-bold text-on-surface leading-none">
+                {{ cmp.expenseDeltaPercentage > 0 ? '+' : '' }}{{ cmp.expenseDeltaPercentage | number: '1.1-1' }}%
+              </span>
+              <span class="block font-body-sm text-body-sm text-on-surface-variant mt-1">
+                Gastado en {{ previousMonthLabel(cmp) }}: {{ formatCurrency(cmp.previousTotalExpenses) }} · Este mes:
+                {{ formatCurrency(cmp.currentTotalExpenses) }}
+              </span>
+            </div>
+          </div>
+          @if (cmp.incomeDeltaPercentage !== null) {
+            <div class="flex items-center justify-between pt-space-sm border-t border-outline-variant/40">
+              <span class="font-sans text-body-sm text-on-surface-variant">Ingresos vs. mes anterior</span>
+              <span
+                class="font-numeric text-label-numeric-md font-semibold"
+                [class]="cmp.incomeDeltaPercentage! >= 0 ? 'text-primary' : 'text-on-surface'"
+              >
+                {{ cmp.incomeDeltaPercentage! > 0 ? '+' : '' }}{{ cmp.incomeDeltaPercentage | number: '1.1-1' }}%
+              </span>
+            </div>
+          }
+        </div>
+      } @else {
+        <p class="font-sans text-body-sm text-on-surface-variant">Sin datos suficientes del mes anterior.</p>
+      }
+    </aura-glass-card>
+  }
+</div>

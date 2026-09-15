@@ -1,0 +1,34 @@
+<svg
+  [attr.viewBox]="viewBox"
+  preserveAspectRatio="none"
+  class="w-full h-28 sm:h-36 text-primary-container overflow-visible"
+>
+  <defs>
+    <linearGradient [attr.id]="gradientId()" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="currentColor" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+  <path [attr.d]="areaPath()" [attr.fill]="'url(#' + gradientId() + ')'" stroke="none" />
+  <path
+    [attr.d]="linePath()"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linejoin="round"
+    stroke-linecap="round"
+    vector-effect="non-scaling-stroke"
+  />
+  @for (point of scaledPoints(); track point.raw.x) {
+    <circle
+      [attr.cx]="point.cx"
+      [attr.cy]="point.cy"
+      [attr.r]="point.highlighted ? 3.5 : 1.6"
+      fill="currentColor"
+    >
+      @if (point.raw.label) {
+        <title>{{ point.raw.label }}</title>
+      }
+    </circle>
+  }
+</svg>

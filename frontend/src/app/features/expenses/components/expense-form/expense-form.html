@@ -8,7 +8,7 @@
   >
     <div class="flex items-center justify-between mb-space-md">
       <h2 class="font-heading text-headline-md text-on-surface font-bold">
-        {{ isEditMode() ? 'Edit Expense' : 'Add Expense' }}
+        {{ isEditMode() ? 'Editar movimiento' : 'Añadir movimiento' }}
       </h2>
       <button
         type="button"
@@ -28,9 +28,38 @@
     }
 
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-space-md">
+      <!-- Tipo de movimiento -->
+      <div>
+        <label class="block font-body-sm text-body-sm text-on-surface-variant mb-1">Tipo</label>
+        <div class="grid grid-cols-2 gap-space-sm">
+          <button
+            type="button"
+            (click)="selectType('EXPENSE')"
+            [class]="form.controls.type.value === 'EXPENSE'
+              ? 'bg-tertiary-container/15 text-tertiary-fixed-dim ring-1 ring-tertiary-fixed-dim/40'
+              : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'"
+            class="flex items-center justify-center gap-space-xs py-2.5 rounded-lg font-label-numeric-md text-label-numeric-md font-semibold transition-all"
+          >
+            <span class="material-symbols-outlined text-[18px]">remove_circle</span>
+            Gasto
+          </button>
+          <button
+            type="button"
+            (click)="selectType('INCOME')"
+            [class]="form.controls.type.value === 'INCOME'
+              ? 'bg-primary-container/15 text-primary ring-1 ring-primary/40'
+              : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'"
+            class="flex items-center justify-center gap-space-xs py-2.5 rounded-lg font-label-numeric-md text-label-numeric-md font-semibold transition-all"
+          >
+            <span class="material-symbols-outlined text-[18px]">add_circle</span>
+            Ingreso
+          </button>
+        </div>
+      </div>
+
       <div>
         <label class="block font-body-sm text-body-sm text-on-surface-variant mb-1" for="amount"
-          >Amount (€)</label
+          >Importe (€)</label
         >
         <input
           id="amount"
@@ -45,7 +74,39 @@
       </div>
 
       <div>
-        <label class="block font-body-sm text-body-sm text-on-surface-variant mb-1" for="date">Date</label>
+        <div class="flex items-center justify-between mb-1">
+          <label class="font-body-sm text-body-sm text-on-surface-variant" for="categoryId">Categoría</label>
+          <button
+            type="button"
+            (click)="openCategoryManager()"
+            class="font-label-caps text-label-caps text-primary hover:underline uppercase tracking-wider"
+          >
+            + Nueva categoría
+          </button>
+        </div>
+        <select
+          id="categoryId"
+          formControlName="categoryId"
+          class="w-full bg-surface-container text-on-surface font-sans text-body-md px-space-sm py-2.5 rounded-lg focus:outline-none focus:bg-surface-container-high transition-all"
+        >
+          <option [ngValue]="null" disabled>Selecciona una categoría…</option>
+          @for (category of categories(); track category.id) {
+            <option [ngValue]="category.id">{{ category.name }}</option>
+          }
+        </select>
+        @if (errorFor('categoryId'); as msg) {
+          <p class="text-tertiary-fixed-dim font-body-sm text-body-sm mt-1">{{ msg }}</p>
+        }
+        @if (categoriesError(); as err) {
+          <p class="text-tertiary-fixed-dim font-body-sm text-body-sm mt-1">
+            {{ err.error }}
+            <button type="button" (click)="loadCategories()" class="underline">Reintentar</button>
+          </p>
+        }
+      </div>
+
+      <div>
+        <label class="block font-body-sm text-body-sm text-on-surface-variant mb-1" for="date">Fecha</label>
         <input
           id="date"
           type="date"
@@ -60,35 +121,17 @@
 
       <div>
         <label class="block font-body-sm text-body-sm text-on-surface-variant mb-1" for="description"
-          >Description</label
+          >Descripción</label
         >
         <input
           id="description"
           type="text"
           formControlName="description"
           maxlength="255"
+          placeholder="Opcional"
           class="w-full bg-surface-container text-on-surface font-sans text-body-md px-space-sm py-2.5 rounded-lg focus:outline-none focus:bg-surface-container-high transition-all"
         />
         @if (errorFor('description'); as msg) {
-          <p class="text-tertiary-fixed-dim font-body-sm text-body-sm mt-1">{{ msg }}</p>
-        }
-      </div>
-
-      <div>
-        <label class="block font-body-sm text-body-sm text-on-surface-variant mb-1" for="categoryId"
-          >Category</label
-        >
-        <select
-          id="categoryId"
-          formControlName="categoryId"
-          class="w-full bg-surface-container text-on-surface font-sans text-body-md px-space-sm py-2.5 rounded-lg focus:outline-none focus:bg-surface-container-high transition-all"
-        >
-          <option [ngValue]="null" disabled>Select a category…</option>
-          @for (category of categories(); track category.id) {
-            <option [ngValue]="category.id">{{ category.name }}</option>
-          }
-        </select>
-        @if (errorFor('categoryId'); as msg) {
           <p class="text-tertiary-fixed-dim font-body-sm text-body-sm mt-1">{{ msg }}</p>
         }
       </div>
@@ -99,15 +142,19 @@
           (click)="onCancel()"
           class="px-space-md py-2 rounded-full font-label-numeric-md text-label-numeric-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
         >
-          Cancel
+          Cancelar
         </button>
         <button
           type="submit"
           class="px-space-md py-2 rounded-full bg-primary-container hover:bg-primary-fixed-dim text-on-primary-container font-label-numeric-md text-label-numeric-md font-bold transition-all active:scale-95"
         >
-          {{ isEditMode() ? 'Save Changes' : 'Add Expense' }}
+          {{ isEditMode() ? 'Guardar cambios' : 'Añadir' }}
         </button>
       </div>
     </form>
   </div>
 </div>
+
+@if (isCategoryManagerOpen()) {
+  <aura-category-manager (close)="onCategoryManagerClosed()"></aura-category-manager>
+}

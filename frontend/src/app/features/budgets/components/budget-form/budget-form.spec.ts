@@ -1,17 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Categories } from './categories';
+import { BudgetForm } from './budget-form';
 
-describe('Categories', () => {
-  let component: Categories;
-  let fixture: ComponentFixture<Categories>;
+describe('BudgetForm', () => {
+  let component: BudgetForm;
+  let fixture: ComponentFixture<BudgetForm>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Categories],
+      imports: [BudgetForm],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(Categories);
+    fixture = TestBed.createComponent(BudgetForm);
     component = fixture.componentInstance;
+    fixture.componentRef.setInput('periodLabel', 'Septiembre 2026');
     fixture.detectChanges();
   });
 

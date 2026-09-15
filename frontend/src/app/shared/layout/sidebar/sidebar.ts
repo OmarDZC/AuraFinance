@@ -7,13 +7,15 @@ interface NavItem {
   icon: string;
 }
 
+// "/budget" ya no se enlaza en la navegación principal: el presupuesto se
+// consulta y edita directamente desde el Dashboard (icono junto a la cifra
+// "Presupuesto"). La ruta sigue existiendo y es alcanzable por URL, solo se
+// retira del menú porque ya no aporta una pantalla independiente necesaria.
 const NAV_ITEMS: NavItem[] = [
-  { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-  { path: '/expenses', label: 'Expenses', icon: 'receipt_long' },
-  { path: '/statistics', label: 'Statistics', icon: 'analytics' },
-  { path: '/budget', label: 'Monthly Budget', icon: 'account_balance_wallet' },
-  { path: '/goals', label: 'Goals', icon: 'flag' },
-  { path: '/settings', label: 'Settings', icon: 'settings' },
+  { path: '/dashboard', label: 'Resumen', icon: 'dashboard' },
+  { path: '/expenses', label: 'Gastos', icon: 'receipt_long' },
+  { path: '/statistics', label: 'Estadísticas', icon: 'analytics' },
+  { path: '/goals', label: 'Objetivos', icon: 'flag' },
 ];
 
 /**

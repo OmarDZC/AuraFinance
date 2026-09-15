@@ -15,7 +15,7 @@ import { Component, computed, input } from '@angular/core';
 export class CircularGauge {
   /** 0-100+ (puede superar 100 en caso de sobregasto). */
   percentage = input.required<number>();
-  caption = input('Consumed');
+  caption = input('Consumido');
 
   private readonly radius = 42;
   protected readonly circumference = 2 * Math.PI * this.radius;
