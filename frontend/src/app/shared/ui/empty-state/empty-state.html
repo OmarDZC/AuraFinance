@@ -1,0 +1,14 @@
+<aura-glass-card>
+  <div class="flex flex-col items-center justify-center text-center gap-space-sm py-space-xl">
+    <div
+      class="w-14 h-14 rounded-full bg-primary-container/10 text-primary flex items-center justify-center"
+    >
+      <span class="material-symbols-outlined text-[28px]">{{ icon() }}</span>
+    </div>
+    <h2 class="font-heading text-headline-md text-on-surface font-bold">{{ title() }}</h2>
+    <p class="font-sans text-body-md text-on-surface-variant max-w-md">{{ message() }}</p>
+    <!-- Slot opcional para una acción (p. ej. un botón "Add Expense" / "Set Budget").
+         Vacío por defecto: no afecta a los usos existentes que no proyectan nada. -->
+    <ng-content></ng-content>
+  </div>
+</aura-glass-card>

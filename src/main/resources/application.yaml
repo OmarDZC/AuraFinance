@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: Aura-finance
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/aura_finance
+    username: postgres
+    password: AuraDev2026!
+
+  jpa:
+    hibernate:
+      ddl-auto: update

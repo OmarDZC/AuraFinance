@@ -1,0 +1,141 @@
+<div class="flex flex-col gap-space-lg">
+  <!-- Encabezado -->
+  <div class="flex flex-wrap items-center justify-between gap-space-sm">
+    <div>
+      <h1 class="font-heading text-headline-lg text-on-surface font-bold">Expenses</h1>
+      <p class="font-sans text-body-sm text-on-surface-variant mt-1">
+        Gastos conectados en tiempo real con el backend de Aura Finance.
+      </p>
+    </div>
+    <button
+      type="button"
+      (click)="openCreateForm()"
+      class="flex items-center gap-space-xs bg-primary-container hover:bg-primary-fixed-dim text-on-primary-container font-label-numeric-md text-label-numeric-md font-bold px-space-md py-2.5 rounded-full shadow-[0_0_20px_rgba(5,242,146,0.3)] hover:shadow-[0_0_28px_rgba(5,242,146,0.5)] active:scale-95 transition-all"
+    >
+      <span class="material-symbols-outlined text-[18px] font-bold">add</span>
+      <span>Add Expense</span>
+    </button>
+  </div>
+
+  <!-- Filtros -->
+  <aura-glass-card>
+    <div class="flex flex-wrap items-end gap-space-md">
+      <div class="flex flex-col gap-1">
+        <label for="filter-month" class="font-label-caps text-label-caps uppercase text-on-surface-variant"
+          >Month</label
+        >
+        <select
+          id="filter-month"
+          class="bg-surface-container text-on-surface font-sans text-body-sm px-space-sm py-2 rounded-lg focus:outline-none focus:bg-surface-container-high transition-all min-w-40"
+          (change)="onMonthChange($any($event.target).value)"
+        >
+          <!-- [selected] por <option>, no [value] en el <select>: con @for las
+               opciones se crean después de que Angular evalúe [value] en el
+               <select>, y el navegador no reengancha la selección a tiempo. -->
+          <option value="" [selected]="showAllPeriods()">All periods</option>
+          @for (month of months; track month.value) {
+            <option [value]="month.value" [selected]="!showAllPeriods() && period.month() === month.value">
+              {{ month.name }}
+            </option>
+          }
+        </select>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="filter-year" class="font-label-caps text-label-caps uppercase text-on-surface-variant"
+          >Year</label
+        >
+        <input
+          id="filter-year"
+          type="number"
+          class="bg-surface-container text-on-surface font-numeric text-body-sm px-space-sm py-2 rounded-lg focus:outline-none focus:bg-surface-container-high transition-all w-24 disabled:opacity-40"
+          [value]="period.year()"
+          [disabled]="showAllPeriods()"
+          (change)="onYearChange($any($event.target).value)"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="filter-category" class="font-label-caps text-label-caps uppercase text-on-surface-variant"
+          >Category</label
+        >
+        <select
+          id="filter-category"
+          class="bg-surface-container text-on-surface font-sans text-body-sm px-space-sm py-2 rounded-lg focus:outline-none focus:bg-surface-container-high transition-all min-w-40"
+          (change)="onCategoryFilterChange($any($event.target).value)"
+        >
+          <option value="" [selected]="selectedCategoryId() === null">All categories</option>
+          @for (category of categories(); track category.id) {
+            <option [value]="category.id" [selected]="selectedCategoryId() === category.id">
+              {{ category.name }}
+            </option>
+          }
+        </select>
+      </div>
+    </div>
+  </aura-glass-card>
+
+  <!-- Error de carga -->
+  @if (error(); as err) {
+    <aura-glass-card>
+      <div class="flex flex-wrap items-center justify-between gap-space-md">
+        <div class="flex items-center gap-space-sm text-tertiary-fixed-dim">
+          <span class="material-symbols-outlined text-[20px]">error</span>
+          <span class="font-sans text-body-md">{{ err.error }}</span>
+        </div>
+        <button
+          type="button"
+          (click)="loadExpenses()"
+          class="px-space-sm py-1.5 rounded-full bg-surface-container-high text-on-surface font-label-numeric-md text-label-numeric-md hover:bg-surface-container-highest transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    </aura-glass-card>
+  }
+
+  <!-- Loading -->
+  @if (loading()) {
+    <aura-glass-card>
+      <p class="font-sans text-body-md text-on-surface-variant text-center py-space-md">Loading expenses…</p>
+    </aura-glass-card>
+  }
+
+  <!-- Vacío -->
+  @if (!loading() && !error() && expenses().length === 0) {
+    <aura-empty-state
+      icon="receipt_long"
+      title="No expenses found"
+      message="No hay gastos registrados para este filtro. Prueba a cambiar el periodo o la categoría, o añade uno nuevo."
+    ></aura-empty-state>
+  }
+
+  <!-- Listado -->
+  @if (!loading() && !error() && expenses().length > 0) {
+    <aura-glass-card>
+      <div class="flex items-center justify-between mb-space-md">
+        <h2 class="font-heading text-headline-md text-on-surface font-bold">Ledger</h2>
+        <span
+          class="px-space-xs py-0.5 rounded-full text-xs font-label-numeric-md bg-surface-container-high text-on-surface-variant"
+        >
+          {{ expenses().length }} {{ expenses().length === 1 ? 'expense' : 'expenses' }}
+        </span>
+      </div>
+      <aura-expense-list
+        [expenses]="expenses()"
+        (edit)="openEditForm($event)"
+        (delete)="onDelete($event)"
+      ></aura-expense-list>
+    </aura-glass-card>
+  }
+</div>
+
+@if (isFormOpen()) {
+  <aura-expense-form
+    [categories]="categories()"
+    [expense]="editingExpense()"
+    [serverError]="formError()?.error ?? null"
+    (save)="onSave($event)"
+    (cancelled)="closeForm()"
+  ></aura-expense-form>
+}

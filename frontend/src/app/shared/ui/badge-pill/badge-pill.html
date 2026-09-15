@@ -1,0 +1,9 @@
+<span
+  class="inline-flex items-center gap-space-xs px-space-sm py-1 rounded-full font-label-caps text-label-caps uppercase tracking-wider"
+  [class]="toneClasses()"
+>
+  @if (dot()) {
+    <span class="w-1.5 h-1.5 rounded-full" [class]="dotClasses()"></span>
+  }
+  <ng-content></ng-content>
+</span>

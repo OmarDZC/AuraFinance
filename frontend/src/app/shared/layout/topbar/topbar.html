@@ -1,0 +1,75 @@
+<header
+  class="fixed top-0 left-0 lg:left-72 right-0 h-16 bg-surface/75 backdrop-blur-2xl z-30 shadow-[0_1px_8px_rgba(0,0,0,0.4)]"
+>
+  <div class="h-16 w-full px-space-md lg:px-gutter-desktop flex items-center justify-between gap-space-sm">
+    <div class="flex items-center gap-space-sm min-w-0">
+      <!-- Botón de menú (solo mobile/tablet) -->
+      <button
+        type="button"
+        class="lg:hidden p-2 -ml-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors flex-shrink-0"
+        aria-label="Abrir navegación"
+        (click)="menuToggle.emit()"
+      >
+        <span class="material-symbols-outlined text-[22px]">menu</span>
+      </button>
+
+      <!-- Selector de mes -->
+      <div
+        class="flex items-center gap-space-xs bg-surface-container-high/80 px-space-sm py-1.5 rounded-full text-on-surface"
+      >
+        <button
+          type="button"
+          class="flex items-center text-on-surface-variant hover:text-on-surface transition-colors"
+          aria-label="Mes anterior"
+          (click)="previousMonth()"
+        >
+          <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+        </button>
+        <span class="material-symbols-outlined text-[16px] text-primary hidden sm:inline">calendar_today</span>
+        <span class="font-numeric text-label-numeric-md text-on-surface font-semibold whitespace-nowrap">
+          {{ period.label() }}
+        </span>
+        <button
+          type="button"
+          class="flex items-center text-on-surface-variant hover:text-on-surface transition-colors"
+          aria-label="Mes siguiente"
+          (click)="nextMonth()"
+        >
+          <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+        </button>
+      </div>
+
+      @if (period.isCurrentPeriod()) {
+        <aura-badge-pill tone="secondary" [dot]="true" class="hidden xl:block">
+          {{ cycleLabel() }}
+        </aura-badge-pill>
+      }
+    </div>
+
+    <div class="flex items-center gap-space-sm flex-shrink-0">
+      <div class="relative hidden md:block">
+        <span
+          class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]"
+          >search</span
+        >
+        <input
+          type="text"
+          placeholder="Quick search ledger..."
+          class="bg-surface-container-low text-on-surface placeholder:text-on-surface-variant font-sans text-body-sm pl-9 pr-space-md py-1.5 rounded-full focus:outline-none focus:ring-1 focus:ring-primary/40 w-48 lg:w-64 transition-all"
+        />
+      </div>
+      <button
+        type="button"
+        aria-label="Notificaciones"
+        class="p-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors"
+      >
+        <span class="material-symbols-outlined text-[20px]">notifications</span>
+      </button>
+      <div
+        class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant flex-shrink-0"
+      >
+        <span class="material-symbols-outlined text-[18px]">person</span>
+      </div>
+    </div>
+  </div>
+</header>

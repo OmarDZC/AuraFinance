@@ -1,0 +1,11 @@
+<aura-sidebar [isOpen]="isMobileNavOpen()" (closeRequested)="closeMobileNav()"></aura-sidebar>
+
+<div class="lg:pl-72 min-h-screen bg-background">
+  <aura-topbar (menuToggle)="toggleMobileNav()"></aura-topbar>
+
+  <main class="pt-16 min-h-screen">
+    <div class="px-space-md sm:px-margin py-space-lg md:px-margin-tablet lg:px-margin-desktop lg:py-space-lg max-w-[1440px] mx-auto w-full">
+      <router-outlet></router-outlet>
+    </div>
+  </main>
+</div>
